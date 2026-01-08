@@ -1,0 +1,151 @@
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: dataforge
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./coordinator/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dataforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── MinIO ───────────────────────────────────────────────────────────────────
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Coordinator ─────────────────────────────────────────────────────────────
+  coordinator:
+    build:
+      context: .
+      dockerfile: coordinator/Dockerfile
+    ports:
+      - "3000:3000"    # REST API + WebSocket
+      - "50050:50050"  # gRPC CoordinatorService (workers call in)
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/dataforge
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      WORKER_ADDRESSES: worker-1:50051,worker-2:50051,worker-3:50051
+      OTEL_SERVICE_NAME: coordinator
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: on-failure
+
+  # ── Worker 1 ────────────────────────────────────────────────────────────────
+  worker-1:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      WORKER_ID: worker-1
+      WORKER_PORT: "50051"
+      COORDINATOR_ADDRESS: coordinator:50050
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      OTEL_SERVICE_NAME: worker-1
+    depends_on:
+      - coordinator
+    restart: on-failure
+
+  # ── Worker 2 ────────────────────────────────────────────────────────────────
+  worker-2:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      WORKER_ID: worker-2
+      WORKER_PORT: "50051"
+      COORDINATOR_ADDRESS: coordinator:50050
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      OTEL_SERVICE_NAME: worker-2
+    depends_on:
+      - coordinator
+    restart: on-failure
+
+  # ── Worker 3 ────────────────────────────────────────────────────────────────
+  worker-3:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      WORKER_ID: worker-3
+      WORKER_PORT: "50051"
+      COORDINATOR_ADDRESS: coordinator:50050
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: "9000"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      OTEL_SERVICE_NAME: worker-3
+    depends_on:
+      - coordinator
+    restart: on-failure
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_COORDINATOR_URL: http://localhost:3000
+      VITE_WS_URL: ws://localhost:3000
+    depends_on:
+      - coordinator
+
+  # ── Prometheus ───────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  # ── Grafana ──────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/provisioning:/etc/grafana/provisioning
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
+
+volumes:
+  postgres_data:
+  minio_data:
+  grafana_data:

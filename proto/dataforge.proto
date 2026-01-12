@@ -1,0 +1,106 @@
+syntax = "proto3";
+
+package dataforge;
+
+// ─── Worker Service ──────────────────────────────────────────────────────────
+// Coordinator calls these on each worker node
+service WorkerService {
+  // Assign a partition task; worker streams partial results back
+  rpc ExecuteTask(TaskRequest) returns (stream PartialResult);
+
+  // Health probe from coordinator
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+// ─── Coordinator Service ─────────────────────────────────────────────────────
+// Workers call these on the coordinator
+service CoordinatorService {
+  // Worker calls this once on startup to announce itself
+  rpc Register(WorkerInfo) returns (RegisterResponse);
+
+  // Worker calls this every 5 seconds to signal liveness
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+// ─── Task Assignment ─────────────────────────────────────────────────────────
+message TaskRequest {
+  string task_id           = 1;
+  string job_id            = 2;
+  string partition_path    = 3;  // MinIO object key e.g. "partitions/uuid/partition-0.csv"
+  repeated Predicate       predicates       = 4;
+  repeated string          select_columns   = 5;
+  repeated string          group_by_columns = 6;
+  repeated AggregationFunc aggregations     = 7;
+  string order_by_column    = 8;
+  string order_by_direction = 9;  // "ASC" | "DESC"
+  int32  limit              = 10; // 0 = no limit
+}
+
+message Predicate {
+  string column   = 1;
+  string operator = 2;  // >, <, =, >=, <=, !=
+  string value    = 3;
+  string type     = 4;  // "number" | "string"
+}
+
+message AggregationFunc {
+  string function = 1;  // COUNT, SUM, AVG
+  string column   = 2;  // "*" for COUNT(*)
+  string alias    = 3;
+}
+
+// ─── Partial Results (streamed worker → coordinator) ─────────────────────────
+message PartialResult {
+  string task_id       = 1;
+  bool   is_aggregated = 2;
+
+  // Non-aggregated path (plain SELECT / filtered scan)
+  repeated string column_names = 3;
+  repeated Row    rows         = 4;
+
+  // Aggregated path (GROUP BY present)
+  repeated AggregationGroup groups = 5;
+
+  bool is_complete = 6;  // true on the final message of the stream
+}
+
+message Row {
+  repeated string values = 1;
+}
+
+message AggregationGroup {
+  string group_key = 1;  // pipe-delimited composite key e.g. "Engineering|Mumbai"
+  int64  count     = 2;
+
+  // partial sums per column — deserialises as plain JS object in grpc-js
+  // always use Object.entries(group.sums) NOT group.sums.forEach()
+  map<string, double> sums         = 3;
+
+  // group-by column name → group-by value (needed for final output row)
+  map<string, string> group_values = 4;
+}
+
+// ─── Worker Registration / Heartbeat ─────────────────────────────────────────
+message WorkerInfo {
+  string worker_id = 1;
+  string address   = 2;
+  int32  port      = 3;
+}
+
+message RegisterResponse {
+  bool success = 1;
+}
+
+message HeartbeatRequest {
+  string worker_id    = 1;
+  string status       = 2;  // "alive"
+  int32  active_tasks = 3;
+}
+
+message HeartbeatResponse {
+  bool acknowledged = 1;
+}
+
+// ─── Health Probe ─────────────────────────────────────────────────────────────
+message PingRequest  {}
+message PingResponse { bool alive = 1; }

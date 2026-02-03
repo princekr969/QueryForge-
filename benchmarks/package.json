@@ -1,0 +1,14 @@
+{
+  "name": "dataforge-benchmarks",
+  "version": "1.0.0",
+  "description": "DataForge benchmark scripts",
+  "scripts": {
+    "bench": "node run_benchmark.js"
+  },
+  "dependencies": {
+    "csv-parse":    "^5.5.0",
+    "csv-stringify": "^6.4.0",
+    "form-data":    "^4.0.0",
+    "ws":           "^8.14.0"
+  }
+}

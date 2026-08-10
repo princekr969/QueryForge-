@@ -1,4 +1,4 @@
--- DataForge PostgreSQL Schema
+-- QueryForge PostgreSQL Schema
 -- Loaded automatically by postgres Docker image on first run
 
 -- ── Datasets ─────────────────────────────────────────────────────────────────

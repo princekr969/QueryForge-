@@ -1,7 +1,7 @@
 {
-  "name": "dataforge-coordinator",
+  "name": "queryforge-coordinator",
   "version": "1.0.0",
-  "description": "DataForge coordinator node",
+  "description": "QueryForge coordinator node",
   "main": "src/index.js",
   "scripts": {
     "start": "node -r ./tracing.js src/index.js",

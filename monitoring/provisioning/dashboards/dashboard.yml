@@ -1,7 +1,7 @@
 apiVersion: 1
 
 providers:
-  - name:    DataForge
+  - name:    QueryForge
     folder:  ''
     type:    file
     options:

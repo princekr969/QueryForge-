@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: 'DataForge'
+  - name: 'QueryForge'
     orgId: 1
-    folder: 'DataForge'
+    folder: 'QueryForge'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30

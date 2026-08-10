@@ -1,10 +1,10 @@
 'use strict'
 
 /**
- * DataForge Benchmark Script
+ * QueryForge Benchmark Script
  *
- * 1. Generates a 1,000,000-row CSV (id, name, age, city, salary, department)
- * 2. Uploads it to DataForge coordinator
+ * 1. Generates a 2,000,000-row CSV (id, name, age, city, salary, department)
+ * 2. Uploads it to QueryForge coordinator
  * 3. Runs the benchmark query via the distributed engine (3 workers)
  * 4. Runs the same query locally (single Node.js process, no distribution)
  * 5. Prints: single-machine time, distributed time, speedup ratio
@@ -19,9 +19,10 @@ const fs      = require('fs')
 const path    = require('path')
 const http    = require('http')
 const https   = require('https')
-const { parse }    = require('csv-parse')
+const { parse }     = require('csv-parse')
 const { stringify } = require('csv-stringify')
 const FormData = require('form-data')
+const axios    = require('axios')
 
 const COORDINATOR_URL = process.env.COORDINATOR_URL || 'http://localhost:3000'
 const CSV_PATH        = path.join(__dirname, 'benchmark_data.csv')
@@ -99,10 +100,10 @@ async function generateCsv () {
   })
 }
 
-// ── 2. Upload CSV to DataForge ─────────────────────────────────────────────────
+// ── 2. Upload CSV to QueryForge ─────────────────────────────────────────────────
 
 async function uploadDataset () {
-  console.log('\n[Benchmark] Uploading dataset to DataForge...')
+  console.log('\n[Benchmark] Uploading dataset to QueryForge...')
   const start = Date.now()
 
   const form = new FormData()
@@ -111,26 +112,40 @@ async function uploadDataset () {
     contentType: 'text/csv'
   })
 
-  return new Promise((resolve, reject) => {
-    form.submit(
-      { host: 'localhost', port: 3000, path: '/api/datasets/upload', timeout: 300000 },
-      (err, res) => {
-      if (err) return reject(err)
-      const chunks = []
-      res.on('data', c => chunks.push(c))
-      res.on('end', () => {
-        const body = JSON.parse(Buffer.concat(chunks).toString())
-        if (res.statusCode !== 201) {
-          return reject(new Error(`Upload failed: ${JSON.stringify(body)}`))
+  const fileSizeMB = (fs.statSync(CSV_PATH).size / 1024 / 1024).toFixed(1)
+  console.log(`[Benchmark] File size: ${fileSizeMB} MB — using 10-minute upload timeout`)
+
+  try {
+    const res = await axios.post(
+      `${COORDINATOR_URL}/api/datasets/upload`,
+      form,
+      {
+        headers: form.getHeaders(),
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        timeout: 10 * 60 * 1000,   // 10-minute timeout for large files
+        onUploadProgress: (evt) => {
+          if (evt.total) {
+            const pct = Math.round((evt.loaded / evt.total) * 100)
+            process.stdout.write(`\r[Benchmark] Upload progress: ${pct}%  `)
+          }
         }
-        console.log(`[Benchmark] Dataset uploaded in ${Date.now() - start}ms — dataset ID: ${body.datasetId}`)
-        resolve(body.datasetId)
-      })
-    })
-  })
+      }
+    )
+    process.stdout.write('\n')
+    const body = res.data
+    if (res.status !== 201) {
+      throw new Error(`Upload failed (${res.status}): ${JSON.stringify(body)}`)
+    }
+    console.log(`[Benchmark] Dataset uploaded in ${Date.now() - start}ms — dataset ID: ${body.datasetId}`)
+    return body.datasetId
+  } catch (err) {
+    const msg = err.response ? JSON.stringify(err.response.data) : err.message
+    throw new Error(`Upload failed: ${msg}`)
+  }
 }
 
-// ── 3. Run distributed query via DataForge ─────────────────────────────────────
+// ── 3. Run distributed query via QueryForge ─────────────────────────────────────
 
 async function runDistributedQuery (datasetId) {
   console.log('\n[Benchmark] Running distributed query (3 workers)...')
@@ -244,7 +259,7 @@ function printResults (localResult, distributedResult) {
   const speedup = (localResult.elapsed / distributedResult.elapsed).toFixed(2)
 
   console.log('\n' + '═'.repeat(60))
-  console.log('  DataForge Benchmark Results')
+  console.log('  QueryForge Benchmark Results')
   console.log('═'.repeat(60))
   console.log(`  Rows processed:          ${ROW_COUNT.toLocaleString()}`)
   console.log(`  Rows returned:           ${distributedResult.rows.length} groups`)
@@ -261,7 +276,7 @@ function printResults (localResult, distributedResult) {
   console.log('═'.repeat(60))
   console.log()
   console.log(`  Resume bullet:`)
-  console.log(`  "Built DataForge, a distributed SQL query engine processing`)
+  console.log(`  "Built QueryForge, a distributed SQL query engine processing`)
   console.log(`   ${ROW_COUNT.toLocaleString()} row datasets across 3 parallel worker nodes via`)
   console.log(`   gRPC streaming; implemented predicate pushdown, partial`)
   console.log(`   aggregation (MapReduce-style), and automatic fault recovery`)
@@ -300,8 +315,8 @@ async function main () {
     printResults(localResult, distributedResult)
 
     // Clean up generated CSV
-    fs.unlinkSync(CSV_PATH)
-    console.log('[Benchmark] Cleaned up benchmark CSV.')
+    // fs.unlinkSync(CSV_PATH)
+    // console.log('[Benchmark] Cleaned up benchmark CSV.')
     process.exit(0)
   } catch (err) {
     console.error('\n[Benchmark] Fatal error:', err.message)

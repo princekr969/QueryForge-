@@ -20,3 +20,6 @@ Thumbs.db
 # Git setup scripts
 git_push_chronological.sh
 git_push_chronological.ps1
+
+.vscode/
+.impeccable/

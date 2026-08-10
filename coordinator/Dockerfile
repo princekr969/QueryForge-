@@ -14,4 +14,4 @@ COPY coordinator/ .
 
 EXPOSE 3000 50050 9464
 
-CMD ["node", "-r", "./tracing.js", "src/index.js"]
+CMD ["node", "--max-old-space-size=2048", "-r", "./tracing.js", "src/index.js"]

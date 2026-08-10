@@ -2,7 +2,7 @@
   "__inputs": [],
   "__requires": [],
   "annotations": { "list": [] },
-  "description": "DataForge Distributed SQL Engine — Real-time metrics",
+  "description": "QueryForge Distributed SQL Engine — Real-time metrics",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -112,12 +112,12 @@
     }
   ],
   "schemaVersion": 38,
-  "tags": ["dataforge"],
+  "tags": ["queryforge"],
   "templating": { "list": [] },
   "time": { "from": "now-15m", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "DataForge",
-  "uid": "dataforge-main",
+  "title": "QueryForge",
+  "uid": "queryforge-main",
   "version": 1
 }

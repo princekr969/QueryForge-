@@ -2,6 +2,187 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-gray-950 text-gray-100 font-sans;
+/* ─── Geist font (self-hosted via CDN) ─────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    scrollbar-color: #293049 #0b0d0f;
+    scrollbar-width: thin;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: #0b0d0f;
+    color: #e2e8f0;
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0b0d0f; }
+  ::-webkit-scrollbar-thumb { background: #293049; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3b4a6b; }
+
+  /* Focus ring */
+  *:focus-visible {
+    outline: 2px solid rgba(59, 130, 246, 0.6);
+    outline-offset: 2px;
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgba(59, 130, 246, 0.25);
+    color: #e2e8f0;
+  }
+}
+
+@layer components {
+  /* ── Glass card ──────────────────────────────────────────────── */
+  .card {
+    @apply bg-card border border-border rounded-xl shadow-card;
+    background-image: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 100%);
+  }
+
+  .card-glow {
+    @apply card;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 
+           bg-accent text-white font-semibold text-sm rounded-lg
+           border border-accent-hover/20
+           transition-all duration-150 ease-out
+           hover:bg-accent-hover active:scale-[0.98]
+           disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(59,130,246,0.2), 0 4px 12px rgba(59,130,246,0.15);
+  }
+
+  .btn-primary:not(:disabled):hover {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 0 0 1px rgba(96,165,250,0.3), 0 4px 20px rgba(59,130,246,0.25);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 
+           bg-transparent text-ink-muted text-sm rounded-lg border border-border
+           transition-all duration-150 hover:bg-card hover:text-ink hover:border-navy
+           active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2
+           bg-danger/10 text-danger-text text-sm rounded-lg border border-danger/20
+           transition-all duration-150 hover:bg-danger/20
+           active:scale-[0.98];
+  }
+
+  /* ── Input ───────────────────────────────────────────────────── */
+  .input-base {
+    @apply w-full bg-surface border border-border rounded-lg px-3 py-2.5 text-sm text-ink
+           placeholder:text-ink-faint
+           transition-all duration-150
+           focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/20;
+  }
+
+  .input-select {
+    @apply input-base appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238892a4' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  /* ── Badge ───────────────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium border;
+  }
+  .badge-blue   { @apply badge bg-accent/10 text-accent border-accent/20; }
+  .badge-green  { @apply badge bg-success-dim text-success-text border-success/20; }
+  .badge-yellow { @apply badge bg-warn-dim text-warn-text border-warn/20; }
+  .badge-red    { @apply badge bg-danger-dim text-danger-text border-danger/20; }
+  .badge-ghost  { @apply badge bg-surface text-ink-muted border-border; }
+
+  /* ── Code / SQL ──────────────────────────────────────────────── */
+  .sql-editor {
+    @apply w-full font-mono text-sm text-emerald-300/90 bg-surface
+           border border-border rounded-lg px-4 py-3.5
+           placeholder:text-ink-ghost caret-accent
+           focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/15
+           resize-none leading-relaxed;
+    tab-size: 2;
+  }
+
+  /* ── Status dot ──────────────────────────────────────────────── */
+  .status-dot {
+    @apply inline-block w-1.5 h-1.5 rounded-full;
+  }
+
+  /* ── Section label ───────────────────────────────────────────── */
+  .section-label {
+    @apply flex items-center gap-2 text-xs font-semibold tracking-widest uppercase text-ink-faint mb-4;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, #1e2638 0%, transparent 100%);
+  }
+
+  /* ── Shine sweep ─────────────────────────────────────────────── */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgba(255,255,255,0.04) 50%,
+      transparent 60%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #e2e8f0 0%, #8892a4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-blue {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 60%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-subtle {
+    border-color: rgba(30, 38, 56, 0.8);
+  }
+
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  }
 }

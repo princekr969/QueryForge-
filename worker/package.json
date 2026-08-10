@@ -1,7 +1,7 @@
 {
-  "name": "dataforge-worker",
+  "name": "queryforge-worker",
   "version": "1.0.0",
-  "description": "DataForge worker node",
+  "description": "QueryForge worker node",
   "main": "src/index.js",
   "scripts": {
     "start": "node -r ./tracing.js src/index.js",

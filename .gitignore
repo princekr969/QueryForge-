@@ -23,3 +23,8 @@ git_push_chronological.ps1
 
 .vscode/
 .impeccable/
+.agents/
+.agent/
+.github/skills/
+.github/hooks/
+.github/agents/
